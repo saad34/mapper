@@ -1,0 +1,213 @@
+#include <float.h>
+
+#include "m4.h"
+#include "TSP.h"
+#include <vector>
+#include <unordered_map>
+#include <map>
+#include <cfloat>
+#include <bits/stl_vector.h>
+#include <algorithm>
+#include "search.h"
+
+using namespace std;
+
+vector<unsigned> traveling_salesman(vector<unsigned> intersections_to_traverse, vector<unsigned> depot_locations) {
+
+    unordered_map<unsigned, double> segHT;
+    map<double, unsigned> depotCosts;
+    vector<unsigned> bestPath;
+    vector<unsigned> bestDepots = depot_locations;
+    double bestCost = DBL_MAX - 1.0;
+    int count = 0;
+    bool useHeuristics = false;
+    int colorCount = 4;
+    travelPath worstPath;
+    worstPath.time = 0;
+    worstPath.startIntersection = -1;
+    worstPath.endIntersection = -1;
+    
+//    cout<<"start"<<endl;
+    
+    // run through every depot twice
+//    auto iter = bestDepots.begin();  
+//    while (count < 1) {
+                
+        vector<unsigned> currentPath;
+        double pathCost = 0;
+        
+        ;
+        vector<unsigned> unvisitedDrops = intersections_to_traverse;
+        auto iter = unvisitedDrops.begin(); 
+        unsigned startID = (*iter);
+        unsigned currentIntID = startID;
+        unvisitedDrops.erase(iter);
+        bool pathExists = true;
+        while (!unvisitedDrops.empty()) {
+            
+//            cout<<currentIntID<<
+            
+            currentIntID = searchNext(currentIntID, unvisitedDrops, useHeuristics, segHT, pathCost, currentPath, colorCount, worstPath);
+//            cout<<currentIntID<<endl;
+            
+            if(currentIntID == getNumberOfIntersections() + 1) {
+                
+                pathCost = DBL_MAX;
+                pathExists = false;
+                break;
+            }
+            // the following three lines can be made into 1. Current format is for debugging. single line method follows
+            // unvisitedDepots.erase(find(unvisitedDepots.begin(), unvisitedDepots.end(), currentIntId));
+            vector<unsigned>::iterator jter = find(unvisitedDrops.begin(), unvisitedDrops.end(), currentIntID);
+            if(jter == unvisitedDrops.end()) cout<<"error - arrived at an delivery point that doesn't exist"<<endl;
+            else unvisitedDrops.erase(jter);
+            
+            colorCount++;
+        }
+        
+        if(pathExists) {
+            unvisitedDrops.push_back(startID);
+            searchNext(currentIntID, unvisitedDrops, useHeuristics, segHT, pathCost, currentPath, colorCount, worstPath);
+    //        searchNext(currentIntID, depot_locations, useHeuristics, segHT, pathCost, currentPath, colorCount);       
+        }
+        // adding "pheromones"
+        
+        //100 is arbitrary - pick something better. Formula just follows the logic that as the path cost gets bigger
+        //the bonus of following that path is smaller (segBonus makes the biggest impact if it is a huge negative number)
+//        double segBonus = (-1)*100000/pathCost;
+//       
+//        for (auto iter = currentPath.begin(); iter != currentPath.end() && pathExists; iter++) {
+//
+//            unordered_map<unsigned,double>::iterator found = segHT.find(*iter);
+//            if(found == segHT.end()) {
+//                
+//                segHT.insert(make_pair(*iter, segBonus));
+//            } else {
+//                
+//                (*found).second += segBonus;
+//            }
+//        }
+       
+//remove longest travel time in path a get depot location to get to those intersections
+        unsigned endDrop = worstPath.endIntersection;
+        unsigned startDrop = worstPath.startIntersection;
+//        vector<unsigned> test1;
+//        vector<unsigned> test2;
+
+        unsigned startSegment = worstPath.endSegmentIndex;
+        unsigned endSegment = worstPath.startSegmentIndex;
+        vector<unsigned> actualCurrentPath;
+        unsigned i = startSegment;
+//        cout<<"Start: "<<startDrop<<" - End: "<<endDrop<<endl;
+        
+        if(i == currentPath.size()) {
+//                cout<<"end cycle"<<endl;
+                i = 0;
+        }
+        do {          
+            actualCurrentPath.push_back(currentPath.at(i));
+            i++;
+            if(i == currentPath.size()) {
+//                cout<<"end cycle"<<endl;
+                i = 0;
+            }
+        } while(i != endSegment);
+        
+//        setcolor(RED);
+//        drawPath(actualCurrentPath);
+//        
+//        vector<unsigned> testPath = searchPath(103969,41999);
+//        
+//        setcolor(BLUE);
+//        drawPath(testPath);
+        
+//        for(int i = 0; i < 97; i++) {
+//            
+//            cout<<"correct:"<<testPath.at(i)<<"- actual:"<<actualCurrentPath.at(i)<<endl;
+//        }
+//        
+        //cout<<"correct:"<<testPath.size()<<" - actual:"<<actualCurrentPath.size()<<endl;
+        
+        //if(path_is_legal(103969,41999, actualCurrentPath)) cout<<"path between is good"<<endl;
+        
+        vector<unsigned> pathFromDepot;
+        vector<unsigned> finalPathFromDepot;
+        vector<unsigned> startNode;
+        //vector<unsigned> startDepot;
+        startNode.push_back(startDrop);
+        double depotPathTime = DBL_MAX;
+        for(auto jter = depot_locations.begin(); jter != depot_locations.end(); jter++) {
+            
+            double time = 0;
+            searchNext((*jter), startNode, useHeuristics, segHT, time, pathFromDepot, colorCount, worstPath);
+            if(time < depotPathTime) {
+                depotPathTime = time;
+                finalPathFromDepot = pathFromDepot;        
+            }
+            
+            pathFromDepot.clear();
+        }
+        
+//        if(path_is_legal(depot_locations.front(), 103969, finalPathFromDepot)) cout<<"path to 1st is good"<<endl;
+        
+        actualCurrentPath.insert(actualCurrentPath.begin(), finalPathFromDepot.begin(), finalPathFromDepot.end());
+        
+        finalPathFromDepot.clear();
+        searchNext(endDrop, depot_locations, useHeuristics, segHT, pathCost, finalPathFromDepot, colorCount, worstPath);
+        
+//        if(path_is_legal(41999, depot_locations.front(), finalPathFromDepot)) cout<<"path from 2nd is good"<<endl;
+
+        actualCurrentPath.insert(actualCurrentPath.end(), finalPathFromDepot.begin(), finalPathFromDepot.end());
+        
+        pathCost = 0;//compute_path_travel_time(actualCurrentPath);
+        
+        // save best path
+        if(pathCost < bestCost) {
+            
+            bestCost = pathCost;
+            bestPath = actualCurrentPath;
+        }
+        
+//        if(pathCost > bestCost + 25) {
+//            
+//            vector<unsigned>::iterator jter = find(bestDepots.begin(), bestDepots.end(), *iter);
+//            if(jter == bestDepots.end()) cout<<"error - arrived at an delivery point that doesn't exist"<<endl;
+//            else bestDepots.erase(jter);
+//        }
+        
+//        depotCosts.insert(make_pair(pathCost, *iter));
+//        
+//        // Makes sure it's inbounds and end case
+//        if(iter != bestDepots.end()) iter++;
+//        if(iter == bestDepots.end()) {
+//            
+//            count++;
+//            iter = bestDepots.begin();
+//            useHeuristics = true;
+//            
+//            if(bestDepots.size() > 6) {
+//                bestDepots.clear();
+//
+//                for(int i = 0; i < (int) depotCosts.size()/2; i++) {
+//
+//                    map<double, unsigned>::iterator depot = depotCosts.begin();
+//                    bestDepots.push_back(depot->second);
+//                    depotCosts.erase(depot);
+//                }
+//            }
+//        }
+//    }
+    
+//    cout<<"done"<<endl;
+<<<<<<< .mine
+//    drawPath(bestPath);
+//        for(auto iter = bestPath.begin(); iter != bestPath.end(); iter++) {
+//            
+//            cout<<*iter<<endl;
+//        }
+=======
+//    drawPath(bestPath);
+    
+>>>>>>> .r111
+    return bestPath;
+}

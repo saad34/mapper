@@ -1,0 +1,299 @@
+#include "search.h"
+#include "iNode.h"
+#include "StreetsDatabaseAPI.h"
+#include "m3.h"
+#include "m1.h"
+#include <queue>
+#include <unordered_map>
+#include <utility>
+
+using namespace std;
+
+//comparator - necessary for heap
+
+class compare {
+public:
+
+    bool operator()(iNode* lhs, iNode* rhs) {
+
+        return lhs->getTotCost() > rhs->getTotCost();
+    }
+};
+
+/* NOTE
+ * To fix optimality (current best guess):
+ * when you get to the destination, save the best path score (pointer to the best final node)
+ * keep looping through remainder of nodes in wavefront
+ * if you 
+ */
+typedef priority_queue<iNode*, std::vector<iNode*>, compare> myHeap;
+
+vector<unsigned> searchPath(unsigned intersect_id_start, unsigned intersect_id_end) {
+
+    /*LOGIC
+     * initilize wavefront and visitedNodes.
+     * Add start node to both
+     * LOOP:
+     * Pop lowest cost path off the heap
+     * If this is the end node, find path, free all memory, return
+     * else
+     * Check to see if we've been to this node before
+     * If we haven't visited it, add it to the visited list 
+     * If we have, check if the new path is better or worse
+     * If the path is better, update the node's path.
+     * If haven't visited it, or the path is better, add all out intersections to wavefront
+     * loop
+     */
+    iNode* startNode = new iNode(intersect_id_start, -1, -1, 0, 0);
+
+    //set up cost set, indicating what comparator to use
+    //I can probably change this to a heap now
+    myHeap waveFront;
+    waveFront.push(startNode);
+
+    //set up visitedNodes hash table (unordered_map). 
+    //First object is the id of the node, second is a pair of cost and segment that got them there    
+    unordered_map<unsigned, iNode*> visitedNodes;
+
+    //while there's still possibilities to find the destination
+    while (!waveFront.empty()) {
+        //get at the smallest value of the set, then remove it from wavefront
+        bool deleteCurrent = false;
+        iNode* current = waveFront.top();
+        waveFront.pop();
+
+        auto jter = visitedNodes.find((current->getId()));
+
+        if (jter == visitedNodes.end()) {
+
+            visitedNodes.insert(make_pair(current->getId(), current));
+
+
+            //loop through all the paths you can take from the previous nodes (all the out segments)
+            double numSegments = getIntersectionStreetSegmentCount(current->getId());
+            for (int i = 0; i < numSegments; i++) {
+
+                iNode* newNode = getNextNode(current, i, intersect_id_end);
+                //if the node is valid (i.e. it's not a one way going the wrong way)
+                if (newNode != NULL) {
+                    waveFront.push(newNode);
+                }
+            }
+        } else {
+
+            iNode* existingNode = (*jter).second;
+
+            //if new path to this node is better than the old path
+            //delete the old path, and create the new path in the set
+            //update the best values into the set
+            if (current->getPathCost() < existingNode->getPathCost()) {
+
+                //delete old path in wavefront, and add new
+                //get all the nodes in waveFront that have the same cost
+                delete (*jter).second;
+                (*jter).second = current;
+                //loop through all the paths you can take from the previous nodes (all the out segments)
+                double numSegments = getIntersectionStreetSegmentCount(current->getId());
+                for (int i = 0; i < numSegments; i++) {
+
+                    iNode* newNode = getNextNode(current, i, intersect_id_end);
+                    //if the node is valid (i.e. it's not a one way going the wrong way)
+                    if (newNode != NULL) {
+                        waveFront.push(newNode);
+                    }
+                }
+            } else deleteCurrent = true;
+        }
+
+        //reached destination
+        if (current->getId() == intersect_id_end) {
+            //get the full path and return
+            vector<unsigned> path = getFullPath(current->getId(), visitedNodes);
+
+            //free memory
+            for (unordered_map<unsigned, iNode*>::iterator kter = visitedNodes.begin();
+                    kter != visitedNodes.end();
+                    kter++) {
+                delete (*kter).second;
+            }
+
+            while (!waveFront.empty()) {
+                iNode* toDelete = waveFront.top();
+                waveFront.pop();
+                delete toDelete;
+            }
+
+            //            if(path_is_legal(intersect_id_start, intersect_id_end, path)) cout<<"success"<<endl;
+
+            return path;
+        }
+
+        if (deleteCurrent) delete current;
+
+    }
+
+    //if it gets here, it means no path was found :(
+    //free memory
+    for (unordered_map<unsigned, iNode*>::iterator kter = visitedNodes.begin();
+            kter != visitedNodes.end();
+            kter++) {
+        delete (*kter).second;
+    }
+
+    while (!waveFront.empty()) {
+        iNode* toDelete = waveFront.top();
+        waveFront.pop();
+        delete toDelete;
+    }
+    vector<unsigned> noPathFound;
+    return noPathFound;
+}
+
+//determines the cost of each path (a low cost is better)
+
+double getAdditionalPathCost(unsigned prevSegment, unsigned currSegment) {
+
+    double pathCost = compute_additional_path_travel_time(prevSegment, currSegment);
+    return pathCost;
+}
+
+double getHeuristicCost(unsigned currIntersection, unsigned destIntersection) {
+
+    //example heuristic
+    double distanceToEnd = find_distance_between_two_points(getIntersectionPosition(currIntersection), getIntersectionPosition(destIntersection));
+    double cost = (HOURS_TO_MINUTES * distanceToEnd * METRES_TO_KM) / (AVERAGE_SPEED_LIMIT);
+    return cost;
+}
+
+//gets the next node along a certain path
+
+iNode* getNextNode(iNode* current, int i, unsigned dest) {
+
+    unsigned currentID = current->getId();
+
+    //get id of the segment we will follow to the next node
+    unsigned currSegment = getIntersectionStreetSegment(currentID, i);
+
+
+    //if it's a one way street that you cannot travel, return a dummy node
+    if (getStreetSegmentOneWay(currSegment) && currentID != getStreetSegmentEnds(currSegment).from) return NULL;
+
+
+//        drawPathFinding(currSegment);  
+
+
+    //get the next intersection id (i.e. nextNodeID)
+    unsigned nextNodeID;
+    StreetSegmentEnds adjIntersections = getStreetSegmentEnds(currSegment);
+
+    if (adjIntersections.from == adjIntersections.to) return NULL;
+    else if (currentID == adjIntersections.to) nextNodeID = adjIntersections.from;
+    else nextNodeID = adjIntersections.to;
+
+    //calculate the cost of this new path
+    double pathCost = current->getPathCost() + getAdditionalPathCost(current->getPreviousSeg(), currSegment);
+
+    //calculate the total cost of this path
+    double totCost = pathCost + getHeuristicCost(currentID, dest);
+
+    iNode* nextNode = new iNode(nextNodeID, currSegment, currentID, pathCost, totCost);
+    return nextNode;
+}
+
+//return the full path, adds from the end to the start
+
+vector<unsigned> getFullPath(unsigned finalID, unordered_map<unsigned, iNode*> &nodes) {
+
+
+    vector<unsigned> fullPath;
+    int currentID = (int) finalID;
+    unordered_map<unsigned, iNode*>::iterator iter = nodes.find(currentID);
+    int currentSegment = (int) (*iter).second->getPreviousSeg();
+    
+//    if(currentSegment != -1) {
+    iNode* currentNode = (*nodes.find(currentID)).second;
+    currentSegment = currentNode->getPreviousSeg();
+    currentID = currentNode->getPreviousInt();    
+        
+        
+//    }
+    //while the current segment is valid (i.e. we haven't reached the start yet), add the segment to the path
+    while (currentSegment != -1) {
+        
+        //insert segment to the front
+        fullPath.insert(fullPath.begin(), currentSegment);
+
+        //find the previous intersection (the other end of the segment)
+        
+//         drawPathFinding(currentSegment, 4);  
+
+        
+        //find the previous segment from the intersection
+        iNode* currentNode = (*nodes.find(currentID)).second;
+        currentSegment = currentNode->getPreviousSeg();
+        currentID = currentNode->getPreviousInt();
+    }
+        
+    return fullPath;
+}
+
+bool path_is_legal(unsigned start_intersection, unsigned end_intersection, const std::vector<unsigned>& path) {
+    //'start_intersection' is the intersection id of the starting intersection
+    //'end_intersection' is the intersection id of the ending intersection
+    //'path' is a vector street segment id's
+
+    if (path.size() < 1) {
+        return false; //If it is a valid path it must contain at-least one segment
+        cout << "it's less than one" << endl;
+
+    } else {
+        //General case
+        //To verify the path by walking along each segment checking:
+        //  * That we are going a legal direction (e.g. not against one-ways)
+        //  * That each segment is connected to the previous intersection
+        //  * That the final segment is connected to the end_intersection
+        //We start our intersection at the start_intersection
+        //        assert(path.size() >= 1);
+
+        unsigned curr_intersection = start_intersection;
+        for (int i = 0; i < (int) path.size(); i++) {
+            StreetSegmentEnds seg_endpoints = getStreetSegmentEnds(path[i]);
+
+
+            //Are we moving forward or back along the segment?
+            bool seg_traverse_forward;
+            if (seg_endpoints.to == curr_intersection) {
+                //Moving backwards
+                seg_traverse_forward = false;
+
+            } else if (seg_endpoints.from == curr_intersection) {
+                //Moving forwards
+                seg_traverse_forward = true;
+
+            } else {
+                //This segment isn't connected to the current intersection
+                cout << "not connected" << endl;
+                return false;
+            }
+
+            //Are we going the wrong way along the segment?
+            if (!seg_traverse_forward && getStreetSegmentOneWay(path[i])) {
+//                cout << "going down a one way" << endl;
+                return false;
+            }
+
+            //Advance to the next intersection
+            curr_intersection = (seg_traverse_forward) ? seg_endpoints.to : seg_endpoints.from;
+
+        }
+
+        //We should be at the end intersection
+        if (curr_intersection != end_intersection) {
+            return false;
+        }
+
+    }
+
+    //Everything validated
+    return true;
+}

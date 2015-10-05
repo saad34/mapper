@@ -1,0 +1,606 @@
+#include <float.h>
+
+#include "m4.h"
+#include "TSP.h"
+#include <vector>
+#include <unordered_map>
+#include <map>
+#include <cfloat>
+#include <bits/stl_vector.h>
+#include <algorithm>
+#include "search.h"
+
+using namespace std;
+
+vector<unsigned> traveling_salesman(vector<unsigned> intersections_to_traverse, vector<unsigned> depot_locations) {
+
+    unordered_map<unsigned, double> segHT;
+    map<double, unsigned> depotCosts;
+    vector<unsigned> bestDepots = depot_locations;
+<<<<<<< .working
+    unordered_map<unsigned,double> segHT;
+    vector<pathSection> pathSections;
+=======
+    sectionHeap pathSections;
+    bool useHeuristics = false;
+>>>>>>> .merge-right.r114
+    vector<pathSection> bestPathSections;
+    double bestSectionsTime = DBL_MAX;
+    int colorCount = 4;
+    
+//    cout<<"start"<<endl;
+    
+    // run through every depot twice
+<<<<<<< .working
+    //    auto iter = bestDepots.begin();  
+    //    while (count < 1) {
+
+    vector<unsigned> unvisitedDrops = intersections_to_traverse;
+    auto iter = unvisitedDrops.begin();
+    for(int i = 0; i < 2; i++) {
+        unsigned startID = *(iter + i);
+        unsigned currentIntID = startID;
+        unvisitedDrops.erase(iter);
+        bool pathExists = true;
+        while (!unvisitedDrops.empty()) {
+
+            //            cout<<currentIntID<<
+    //        cout<<"start"<<endl;
+            currentIntID = searchNext(currentIntID, unvisitedDrops, colorCount, pathSections, -1, segHT);
+            //            cout<<currentIntID<<endl;
+
+            if (currentIntID == getNumberOfIntersections() + 1) {
+
+                pathExists = false;
+                break;
+            }
+            // the following three lines can be made into 1. Current format is for debugging. single line method follows
+            // unvisitedDepots.erase(find(unvisitedDepots.begin(), unvisitedDepots.end(), currentIntId));
+            vector<unsigned>::iterator jter = find(unvisitedDrops.begin(), unvisitedDrops.end(), currentIntID);
+            if (jter == unvisitedDrops.end()) cout << "error - arrived at an delivery point that doesn't exist" << endl;
+            else unvisitedDrops.erase(jter);
+
+            colorCount++;
+=======
+//    auto iter = bestDepots.begin();  
+//    while (count < 1) {
+                
+        vector<unsigned> currentPath;
+        double pathCost = 0;
+        
+        ;
+        vector<unsigned> unvisitedDrops = intersections_to_traverse;
+        auto iter = unvisitedDrops.begin(); 
+        unsigned startID = (*iter);
+        unsigned currentIntID = startID;
+        unvisitedDrops.erase(iter);
+        bool pathExists = true;
+        while (!unvisitedDrops.empty()) {
+            
+//            cout<<currentIntID<<
+            
+            currentIntID = searchNext(currentIntID, unvisitedDrops, useHeuristics, segHT, pathCost, currentPath, colorCount, pathSections);
+//            cout<<currentIntID<<endl;
+            
+            if(currentIntID == getNumberOfIntersections() + 1) {
+                
+                pathCost = DBL_MAX;
+                pathExists = false;
+                break;
+            }
+            // the following three lines can be made into 1. Current format is for debugging. single line method follows
+            // unvisitedDepots.erase(find(unvisitedDepots.begin(), unvisitedDepots.end(), currentIntId));
+            vector<unsigned>::iterator jter = find(unvisitedDrops.begin(), unvisitedDrops.end(), currentIntID);
+            if(jter == unvisitedDrops.end()) cout<<"error - arrived at an delivery point that doesn't exist"<<endl;
+            else unvisitedDrops.erase(jter);
+            
+            colorCount++;
+>>>>>>> .merge-right.r114
+        }
+<<<<<<< .working
+
+        if (pathExists) {
+            unvisitedDrops.push_back(startID);
+            searchNext(currentIntID, unvisitedDrops, colorCount, pathSections, -1, segHT);
+            //        searchNext(currentIntID, depot_locations, useHeuristics, segHT, pathCost, currentPath, colorCount);       
+        }
+
+        double pathCost = 0;
+        for (auto iter = pathSections.begin(); iter != pathSections.end(); iter++) {
+
+            pathCost += iter->time;
+        }
+        
+        if(pathCost< bestSectionsTime) {
+            bestPathSections = pathSections;
+        }
+        
+        pathSections.clear();
+        
+    }
+    
+    segHT.clear();
+    pathSections = bestPathSections;
+//    cout << pathCost << endl;
+//    
+//    unsigned nodesVisited = 0;
+//    vector<pathSection>::iterator nextSection = pathSections.begin();
+//    unsigned startNodeStart = nextSection->startIntersection;
+//    unsigned previousNodeEnd;
+//    unsigned currentNodeStart;
+//    do {
+//        nodesVisited++;
+=======
+        
+        if(pathExists) {
+            unvisitedDrops.push_back(startID);
+            searchNext(currentIntID, unvisitedDrops, useHeuristics, segHT, pathCost, currentPath, colorCount, pathSections);
+    //        searchNext(currentIntID, depot_locations, useHeuristics, segHT, pathCost, currentPath, colorCount);       
+        }
+        
+        
+        
+        double optimizedCost = 0;
+        
+        vector<unsigned> optimizedPath = optimizePath(currentPath, intersections_to_traverse, pathCost, optimizedCost, pathSections);
+        if(optimizedCost < pathCost) {
+            
+            currentPath = optimizedPath;
+            pathCost = optimizedCost;
+        }
+        // adding "pheromones"
+        
+        //100 is arbitrary - pick something better. Formula just follows the logic that as the path cost gets bigger
+        //the bonus of following that path is smaller (segBonus makes the biggest impact if it is a huge negative number)
+//        double segBonus = (-1)*100000/pathCost;
+//       
+//        for (auto iter = currentPath.begin(); iter != currentPath.end() && pathExists; iter++) {
+>>>>>>> .merge-right.r114
+//
+//            unordered_map<unsigned,double>::iterator found = segHT.find(*iter);
+//            if(found == segHT.end()) {
+//                
+//                segHT.insert(make_pair(*iter, segBonus));
+//            } else {
+//                
+//                (*found).second += segBonus;
+//            }
+//        }
+       
+
+        
+<<<<<<< .working
+    vector<unsigned> actualCurrentPath;
+    for (auto iter = pathSections.begin(); iter != pathSections.end(); iter++) {
+
+        actualCurrentPath.insert(actualCurrentPath.begin(), iter->path.begin(), iter->path.end());
+    }
+    //if(path_is_legal(103969,41999, actualCurrentPath)) cout<<"path between is good"<<endl;
+
+
+    vector<unsigned> startNode;
+    pathSection bestDepotPathSection;
+    //vector<unsigned> startDepot;
+    startNode.push_back(worstPath.endIntersection);
+    double bestDepotPathTime = DBL_MAX;
+    for (auto jter = depot_locations.begin(); jter != depot_locations.end(); jter++) {
+
+        searchNext((*jter), startNode, colorCount, pathSections, 0, segHT);
+        segHT.clear();
+        if (pathSections.front().time < bestDepotPathTime) {
+            bestDepotPathTime = pathSections.front().time;
+            bestDepotPathSection = pathSections.front();
+        }
+        pathSections.erase(pathSections.begin());
+    }
+    pathSections.insert(pathSections.begin(), bestDepotPathSection);
+    
+    //--------------------------------    
+    
+    vector<unsigned> correctPath = searchPath(depot_locations.front(), 103969);
+    //if(path_is_legal(depot_locations.front(), 103969, bestDepotPathSection.path)) cout<<"path to 1st is good"<<endl;
+    //else{ cout<<"ya fucked up 1"<<endl; }
+    
+//    cout<<"correct size: "<<correctPath.size()<<" - actual size "<<bestDepotPathSection.path.size()<<endl;
+//    
+//    for(int i = 0; i < 148; i++) {
+=======
+//        setcolor(RED);
+//        drawPath(actualCurrentPath);
+>>>>>>> .merge-right.r114
+//        
+<<<<<<< .working
+//        cout<<"correct "<<correctPath.at(i)<<" - actual "<<bestDepotPathSection.path.at(i)<<endl;
+//    }
+//    
+//    setcolor(RED);
+//    drawPath(bestDepotPathSection.path);
+//    setcolor(GREEN);
+//    drawPath(correctPath);
+
+    //--------------------------------
+    
+    searchNext(worstPath.startIntersection, depot_locations, colorCount, pathSections, -1, segHT);
+    segHT.clear();
+    //--------------------------------
+
+    
+    correctPath = searchPath(41999, depot_locations.front());
+    //if(path_is_legal(41999, depot_locations.front(), pathSections.back().path)) cout<<"path from 2nd is good"<<endl;
+    //else{ cout<<"ya fucked up 2"<<endl; }
+    
+//    cout<<"correct size: "<<correctPath.size()<<" - actual size "<<pathSections.back().path.size()<<endl;
+//    
+//    for(int i = 0; i < 130; i++) {
+=======
+//        vector<unsigned> testPath = searchPath(103969,41999);
+>>>>>>> .merge-right.r114
+//        
+//        setcolor(BLUE);
+//        drawPath(testPath);
+        
+//        for(int i = 0; i < 97; i++) {
+//            
+//            cout<<"correct:"<<testPath.at(i)<<"- actual:"<<actualCurrentPath.at(i)<<endl;
+//        }
+//        
+        //cout<<"correct:"<<testPath.size()<<" - actual:"<<actualCurrentPath.size()<<endl;
+        
+        //if(path_is_legal(103969,41999, actualCurrentPath)) cout<<"path between is good"<<endl;
+        
+        pathSection worstPath = pathSections.top();
+        pathSections.pop();
+
+        vector<unsigned> bestPath = removeSection(worstPath, currentPath);
+        
+        vector<unsigned> pathFromDepot;
+        vector<unsigned> finalPathFromDepot;
+        vector<unsigned> startNode;
+        //vector<unsigned> startDepot;
+        startNode.push_back(worstPath.startIntersection);
+        double depotPathTime = DBL_MAX;
+        for(auto jter = depot_locations.begin(); jter != depot_locations.end(); jter++) {
+            
+            double time = 0;
+            searchNext((*jter), startNode, useHeuristics, segHT, time, pathFromDepot, colorCount, pathSections);
+            if(time < depotPathTime) {
+                depotPathTime = time;
+                finalPathFromDepot = pathFromDepot;        
+            }
+            
+            pathFromDepot.clear();
+        }
+        
+//        if(path_is_legal(depot_locations.front(), 103969, finalPathFromDepot)) cout<<"path to 1st is good"<<endl;
+        
+        bestPath.insert(bestPath.begin(), finalPathFromDepot.begin(), finalPathFromDepot.end());
+        
+        finalPathFromDepot.clear();
+        searchNext(worstPath.endIntersection, depot_locations, useHeuristics, segHT, pathCost, finalPathFromDepot, colorCount, pathSections);
+        
+//        if(path_is_legal(41999, depot_locations.front(), finalPathFromDepot)) cout<<"path from 2nd is good"<<endl;
+
+        bestPath.insert(bestPath.end(), finalPathFromDepot.begin(), finalPathFromDepot.end());        
+        
+//        if(pathCost > bestCost + 25) {
+//            
+//            vector<unsigned>::iterator jter = find(bestDepots.begin(), bestDepots.end(), *iter);
+//            if(jter == bestDepots.end()) cout<<"error - arrived at an delivery point that doesn't exist"<<endl;
+//            else bestDepots.erase(jter);
+//        }
+        
+//        depotCosts.insert(make_pair(pathCost, *iter));
+//        
+//        // Makes sure it's inbounds and end case
+//        if(iter != bestDepots.end()) iter++;
+//        if(iter == bestDepots.end()) {
+//            
+//            count++;
+//            iter = bestDepots.begin();
+//            useHeuristics = true;
+//            
+//            if(bestDepots.size() > 6) {
+//                bestDepots.clear();
+//
+//                for(int i = 0; i < (int) depotCosts.size()/2; i++) {
+//
+//                    map<double, unsigned>::iterator depot = depotCosts.begin();
+//                    bestDepots.push_back(depot->second);
+//                    depotCosts.erase(depot);
+//                }
+//            }
+//        }
+//    }
+    
+//    cout<<"done"<<endl;
+    drawPath(bestPath);
+//        for(auto iter = bestPath.begin(); iter != bestPath.end(); iter++) {
+//            
+//            cout<<*iter<<endl;
+//        }
+    return bestPath;
+}
+
+vector<unsigned> removeSection(pathSection sectionToRemove, vector<unsigned> currentPath) {
+//remove longest travel time in path a get depot location to get to those intersections
+
+        unsigned startSegment = sectionToRemove.endSegmentIndex;
+        unsigned endSegment = sectionToRemove.startSegmentIndex;
+        vector<unsigned> actualCurrentPath;
+        unsigned i = startSegment;
+//        cout<<"Start: "<<startDrop<<" - End: "<<endDrop<<endl;
+        
+        if(i == currentPath.size()) {
+//                cout<<"end cycle"<<endl;
+                i = 0;
+        }
+<<<<<<< .working
+        //remove next worst path
+        index = 0;
+        pathSection worstPath = getNthWorstSection(pathSections, index, numberTried);
+
+        //noEntryIntID refers to the node that has no segment going into it
+        noEntryIntID = worstPath.startIntersection;
+        //noExitIntID refers to the node that has no segment going out of it
+        noExitIntID = worstPath.endIntersection;
+
+        nextNoEntryIntID = -1;
+
+        //find a new path from the open ended node to the closest node
+        cout<<noExitIntID<<" - "<<intersections_to_traverse.size()<<endl;
+        //newSectionStart = searchNext(noExitIntID, intersections_to_traverse, RED, pathSections, index, );
+
+        //if its not a useful path, put take the new piece out and add old piece back in
+        if ((int) newSectionStart == noEntryIntID) {
+//            cout<<"IM YELLLING"<<endl;
+            auto iter = pathSections.begin();
+            for (int i = 0; i < index; i++) iter++;
+//            cout<<"when deleting"<<iter->time<<endl;
+            pathSections.erase(iter);
+            pathSections.insert(iter, worstPath);
+        }
+        numberTried++;
+    } while ((int) newSectionStart == noEntryIntID);
+    cout<<"found a section"<<endl;
+    //find where you've joined the new path
+    vector<pathSection>::iterator newStartIter;
+    for (auto iter = pathSections.begin(); iter != pathSections.end(); iter++) {
+
+        if (iter->startIntersection == newSectionStart) {
+            newStartIter = iter;
+            break;
+        }
+    }
+    bool pathIsBroken = true;
+    cout << "start of while loop" << endl;
+    //while you haven't found a new complete path
+    int counter = 0;
+    while (pathIsBroken) {
+        counter++;
+        cout<<counter<<endl;
+        //from where you've joined, add all the nodes that are along the new path (until you loop back on yourself)
+        //these are the new nodes that the noEntryNode will look to
+        intersections_to_traverse.clear();
+        for (auto iter = pathSections.begin(); iter != pathSections.end(); iter++) {
+            if (iter->startIntersection == newSectionStart) {
+                newStartIter = iter;
+                break;
+=======
+        do {          
+            actualCurrentPath.push_back(currentPath.at(i));
+            i++;
+            if(i == currentPath.size()) {
+//                cout<<"end cycle"<<endl;
+                i = 0;
+>>>>>>> .merge-right.r114
+            }
+<<<<<<< .working
+        }
+        //        cout<<"found new iter - "<<endl;
+        do {
+
+            if (alreadyHasANewStartPath.find(newSectionStart) == alreadyHasANewStartPath.end()) {
+                intersections_to_traverse.push_back(newSectionStart);
+            }
+            //            cout<<iterToNewNext->endIntersection<<endl;;
+            newSectionStart = newStartIter->endIntersection;
+            newStartIter++;
+            if (newStartIter == pathSections.end()) newStartIter = pathSections.begin();
+
+        } while (newSectionStart != newSectionStart);
+        //        cout<<"finding where you've joined the new path finished - "<<endl;
+        if (intersections_to_traverse.empty()) {
+            cout<<"only once"<<endl;
+            unordered_map<unsigned, pathSection> visitedOnce;
+
+            for (auto iter = pathSections.begin(); iter != pathSections.end(); iter++) {
+
+                unordered_map<unsigned, pathSection>::iterator found = visitedOnce.find(iter->endIntersection);
+                if (found != visitedOnce.end()) {
+                    
+                    unsigned intID1 = iter->startIntersection;
+                    unsigned intID2 = found->second.startIntersection;
+                    bool noNewLoop1 = true;
+                    bool noNewLoop2 = true;
+                    
+                    for (auto jter = pathSections.begin(); jter != pathSections.end(); jter++) {
+                        
+                        if(jter->startIntersection == noEntryIntID) {
+                            cout<<noEntryIntID<<" * "<<jter->endIntersection<<endl;
+                            if(jter->endIntersection == intID1) noNewLoop1 = false;
+                            if(jter->endIntersection == intID2) noNewLoop2 = false;
+                        }
+                    }
+                    cout<<intID1<<" _ "<<intID2<<" _ "<<noEntryIntID<<endl;
+                    if((int) intID1 != noEntryIntID && noNewLoop1){ 
+                        intersections_to_traverse.push_back(intID1);
+                    }
+                    if((int) intID2 != noEntryIntID && intID2 != intID1 && noNewLoop2){
+                        intersections_to_traverse.push_back(intID2);
+                    }
+                    break;
+                }
+                visitedOnce.insert(make_pair(iter->endIntersection, *iter));
+            }
+        }
+        //        cout<<"in case it's empty finished - "<<endl;
+        //find a path between the node with no entry and all the possible node
+        //NOTE: this will give you a path in the wrong direction
+        //        cout<<"start: "<<noEntryIntID<<" - size: "<<intersections_to_traverse.size()<<endl;
+    //    newSectionStart = searchNext(noEntryIntID, intersections_to_traverse, RED, pathSections, 0);
+        //        cout<<"finished search"<<endl;
+        pathSection newPathSection = pathSections.front();
+        pathSections.erase(pathSections.begin());
+=======
+        } while(i != endSegment);
+>>>>>>> .merge-right.r114
+        
+<<<<<<< .working
+        cout<<": "<<newSectionStart<<endl;
+        //since this will give you a path in the wrong direction, flip it.
+        //since this is not a symmetric map, this might not be the optimal path, however it should be close to the best
+        vector<unsigned> newPathFlipped;
+        newPathFlipped.insert(newPathFlipped.begin(), newPathSection.path.rbegin(), newPathSection.path.rend());
+
+        //find the index of the section to replace
+        int count = 0;
+        vector<pathSection>::iterator sectionToReplace;
+        for (auto iter = pathSections.begin(); iter != pathSections.end(); iter++) {
+
+            if (iter->startIntersection == newSectionStart) {
+                sectionToReplace = iter;
+                nextNoEntryIntID = iter->endIntersection;
+                //erase the section to replace
+                pathSections.erase(sectionToReplace);
+                break;
+            }
+            count++;
+        }
+        //        cout<<"finding index finished -"<<endl;
+        //if the flipped path actually works (no one ways messing things up) insert the section appropriately
+        if (path_is_legal(newSectionStart, noEntryIntID, newPathFlipped)) {
+
+            pathSection newPathSection;
+            newPathSection.startIntersection = newSectionStart;
+            newPathSection.endIntersection = noEntryIntID;
+            newPathSection.path = newPathFlipped;
+            newPathSection.time = compute_path_travel_time(newPathFlipped);
+
+            pathSections.insert(sectionToReplace, newPathSection);
+            alreadyHasANewStartPath.insert(newSectionStart);
+
+        }
+            //otherwise, find a new path between the estimated best node and the end
+            //NOTE: once again this might not be the optimal node (since paths vary from direction)
+            //however it should give a very good approximation, which is what we're looking for
+        else {
+
+            vector<unsigned> noEntryVec;
+            noEntryVec.push_back(noEntryIntID);
+            newPathFlipped.clear();
+    //        searchNext(newSectionStart, noEntryVec, RED, pathSections, count);
+            alreadyHasANewStartPath.insert(newSectionStart);
+        }
+
+        //        cout<<"inserted new path finidshed - "<<endl;
+        noEntryIntID = nextNoEntryIntID;
+
+        unsigned nodesVisited = 0;
+        vector<pathSection>::iterator nextSection = pathSections.begin();
+        unsigned startNodeStart = nextSection->startIntersection;
+        unsigned previousNodeEnd;
+        unsigned currentNodeStart;
+        do {
+            nodesVisited++;
+
+            previousNodeEnd = nextSection->endIntersection;
+            nextSection++;
+            if (nextSection != pathSections.end()) {
+                currentNodeStart = nextSection->startIntersection;
+            } else break;
+
+        } while (currentNodeStart == previousNodeEnd);
+        
+        if(nodesVisited == pathSections.size()) cout<<"holla"<<endl;
+
+        //        cout<<"checking completion finished - "<<endl;
+        if (startNodeStart == previousNodeEnd && nodesVisited == pathSections.size()) pathIsBroken = false;
+        //        cout<<"done loop!"<<endl;
+    }
+    cout << "got through while loop" << endl;
+
+    double optimizedCost = 0;
+    for (auto iter = pathSections.begin(); iter != pathSections.end(); iter++) {
+
+        pathCost += iter->time;
+    }
+
+    cout << "opt cost = " << optimizedCost << " - non opt cost = " << pathCost;
+    if (optimizedCost < pathCost) {
+
+        pathCost = optimizedCost;
+        return pathSections;
+    } else return empty;
+=======
+        return actualCurrentPath;
+>>>>>>> .merge-right.r114
+}
+
+
+vector<unsigned> optimizePath(vector<unsigned> currentPath, vector<unsigned> intersections_to_traverse, double const pathCost, double &optimizedCost, sectionHeap &pathSegments) {
+    
+<<<<<<< .working
+    map<double, int> orderedSections;
+//    cout<<"SIZE: "<<pathSections.size()<<" n: "<<n<<endl;
+    vector<pathSection>::iterator worst = pathSections.begin();
+    int count = 0;
+    
+    for (auto iter = pathSections.begin(); iter != pathSections.end(); iter++) {
+
+        orderedSections.insert(make_pair((-1)*(iter->time), count));
+//        cout<<"cost - actual order "<<iter->time<<endl;
+        count++;
+    }
+
+    for (auto iter = orderedSections.begin(); iter != orderedSections.end(); iter++) {
+
+//        cout<<"cost - actual order "<<iter->first<<endl;
+    }
+    
+    for (int i = 0; i < (int) n - 1; i++) {
+//        cout<<i<<" n: "<<n<<" size: "<<orderedSections.size()<<endl;
+        orderedSections.erase(orderedSections.begin());
+    }
+
+
+    
+    index = orderedSections.begin()->second;
+//    cout<<"index "<<index<<endl;
+    for (int i = 0; i<index; i++) worst++; // worst += index ? -Saad
+    pathSection worstSection = *worst;
+    
+    vector<pathSection> newOrder;
+    vector<pathSection>::iterator newOrderIter = worst + 1;
+    if(newOrderIter == pathSections.end()) newOrderIter = pathSections.begin();
+    while(newOrderIter != worst) {
+        
+        newOrder.push_back(*newOrderIter);
+        newOrderIter++;
+        if(newOrderIter == pathSections.end()) newOrderIter = pathSections.begin();
+    }
+    
+    pathSections = newOrder;
+    
+//    cout<<"/------------INFO-------------/"<<endl;
+//    cout<<"cost "<<worstSection.time<<endl;
+//    cout<<"start Intersection "<<worstSection.startIntersection<<endl;
+//    cout<<"end Intersection "<<worstSection.endIntersection<<endl;
+//    cout<<"/-----------------------------/"<<endl;
+
+    return worstSection;
+=======
+//    pathSection worstPath = pathSegments.pop();
+    optimizedCost = DBL_MAX;
+    return currentPath;
+>>>>>>> .merge-right.r114
+}

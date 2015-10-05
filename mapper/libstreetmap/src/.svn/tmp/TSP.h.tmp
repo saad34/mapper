@@ -1,0 +1,51 @@
+#ifndef TSP_H
+#define	TSP_H
+
+#include <vector>
+#include <utility>
+#include <unordered_map>
+#include "draw.h"
+#include "iNode.h"
+#include "search.h"
+#include <queue>
+
+#define AVERAGE_SPEED_LIMIT 85
+typedef std::pair<double,int> Pair;
+
+
+typedef struct path {
+
+    double time;
+    unsigned startIntersection;
+    unsigned endIntersection;
+    unsigned startSegmentIndex;
+    unsigned endSegmentIndex;
+    
+} pathSection;
+
+<<<<<<< .working
+unsigned searchNext(unsigned intersect_id_start, std::vector<unsigned> &delivery_intersection_ids, int color, std::vector<pathSection> &sections, int index, std::unordered_map<unsigned, double>& segHT);
+iNode* getNextNodeTSP(iNode* current, int i, std::vector<unsigned> &destIDs, int color, std::unordered_map<unsigned, double>& segHT);
+double heuristics(unsigned segID, unsigned currentIntID, std::vector<unsigned> &destIDs, std::unordered_map<unsigned, double>& segHT);
+=======
+class compareSegments {
+public:
+>>>>>>> .merge-right.r114
+
+    bool operator()(pathSection lhs, pathSection rhs) {
+
+        return lhs.time > rhs.time;
+    }
+};
+
+typedef std::priority_queue<pathSection, std::vector<pathSection>, compareSegments> sectionHeap;
+
+
+unsigned searchNext(unsigned intersect_id_start, std::vector<unsigned> &poi_intersection_ids,
+        bool useHeuristics, std::unordered_map<unsigned,double> &segHT, double &bestCost, std::vector<unsigned> &pathFormDepot, int color, sectionHeap &sections);
+iNode* getNextNodeTSP(iNode* current, int i, bool useHeuristics, std::unordered_map<unsigned,double> &segHT, std::vector<unsigned> &destIDs, int color);
+double heuristics(unsigned segID, unsigned currentIntID, std::vector<unsigned> &destIDs, std::unordered_map<unsigned,double> &segHT, bool useHeuristics);
+
+
+#endif	/* TSP_H */
+
